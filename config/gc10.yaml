@@ -1,0 +1,8 @@
+path: .\GC10-DET
+test: test
+val: val
+train: train
+
+nc: 1
+names:
+  0: defect

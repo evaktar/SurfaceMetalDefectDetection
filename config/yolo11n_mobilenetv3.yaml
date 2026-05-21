@@ -1,0 +1,41 @@
+# YOLO11n with MobileNetV3-small backbone
+nc: 6  # NEU-DET classes
+
+scales:
+  n: [0.33, 0.25, 1024]  # Nano
+
+backbone:
+  # from, repeats, module, args
+  # out_ch, model_name, weights, unwrap, truncate, split
+  - [-1, 1, TorchVision, [576, mobilenet_v3_small, DEFAULT, True, 2, True]]
+
+  # Multi-scale features from TorchVision backbone
+  - [0, 1, Index, [24, 4]] # P3 (1)
+  - [0, 1, Index, [48, 9]] # P4 
+  - [0, 1, Index, [96, 12]] # P5
+
+head:
+  - [-1, 1, SPPF, [96, 5]] # P5
+
+  # P5 to P4
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']] # 5
+  - [[-1, 2], 1, Concat, [1]]
+  - [-1, 2, C3k2, [256, False]]
+
+  # P4 to P3
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]
+  - [[-1, 1], 1, Concat, [1]]
+  - [-1, 2, C3k2, [128, False]]
+
+  # P3 to P4
+  - [-1, 1, Conv, [128, 3, 2]]
+  - [[-1, 7], 1, Concat, [1]]
+  - [-1, 2, C3k2, [256, False]]
+
+  # P4 to P5
+  - [-1, 1, Conv, [256, 3, 2]]
+  - [[-1, 4], 1, Concat, [1]]
+  - [-1, 2, C3k2, [576, False]]
+
+  # Detect 10, 13, 16
+  - [[-7, -4, -1], 1, Detect, [nc]] # 17
